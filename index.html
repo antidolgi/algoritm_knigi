@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Алгоритм оценки книг — Книголюб</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .section {
+            background: white;
+            padding: 30px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .section h3 { color: #764ba2; margin: 20px 0 10px 0; }
+        .section h4 { color: #555; margin: 15px 0 8px 0; }
+        .rule-box {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #17a2b8;
+        }
+        .example-box {
+            background: #fff8e1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #ff9800;
+        }
+        .example-box h4 { color: #e65100; margin-bottom: 10px; }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .photo-item {
+            text-align: center;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .photo-item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-bottom: 8px;
+        }
+        .photo-item p {
+            font-size: 0.9em;
+            color: #666;
+        }
+        ul { margin-left: 20px; }
+        li { margin: 8px 0; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover { background: #f5f7fa; }
+        .calc-formula {
+            background: #f0f0f0;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            margin-top: 30px;
+        }
+        @media (max-width: 768px) {
+            header h1 { font-size: 1.8em; }
+            .section { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Алгоритм оценки книг для бота (ИИ)</h1>
+            <p>Книголюб — Вологда</p>
+        </header>
+
+        <!-- ОСНОВНЫЕ ПРАВИЛА -->
+        <div class="section">
+            <h2>🎯 ОСНОВНЫЕ ПРАВИЛА</h2>
+            <div class="rule-box">
+                <ol>
+                    <li><strong>Минимальный ценник: 1100₽</strong> (от него считаем скидку 45%)</li>
+                    <li><strong>Формула:</strong> <span class="calc-formula">Ценник - 45% = Цена продажи</span></li>
+                    <li><strong>Средняя цена</strong> считается только по книгам с одинаковой обложкой</li>
+                    <li><strong>Электронные версии</strong> — НЕ учитываются</li>
+                    <li><strong>Уцененные товары</strong> — НЕ учитываются, ЕСЛИ наша идеальная, ЕСЛИ Наша плохая, ТО учитываются</li>
+                    <li><strong>Нет в наличии</strong> — учитываются с пометкой, но не как основной ориентир</li>
+                </ol>
+            </div>
+            <div class="rule-box">
+                <p><strong>Дополнительно:</strong> Еще бывают что стоят книги в средний ценник например 1200-1400 и одна стоит за 7800 на нее мы тоже не обращаем внимания.</p>
+            </div>
+        </div>
+
+        <!-- ПОШАГОВЫЙ АЛГОРИТМ -->
+        <div class="section">
+            <h2>📋 ПОШАГОВЫЙ АЛГОРИТМ</h2>
+            
+            <h3>ШАГ 1: ИДЕНТИФИКАЦИЯ КНИГИ</h3>
+            <p>Собрать данные:</p>
+            <ul>
+                <li>Название</li>
+                <li>Автор</li>
+                <li>ISBN</li>
+                <li>Год издания</li>
+                <li>Издательство</li>
+                <li>Тип обложки (твердая/мягкая)</li>
+                <li>Состояние (идеальное/хорошее/с дефектами)</li>
+                <li>Есть ли дефекты (подчеркивания, пятна, порванные страницы, плесень и т.д.)</li>
+            </ul>
+
+            <h3>ШАГ 2: ПОИСК АНАЛОГОВ НА OZON</h3>
+            <p><strong>Приоритет 1:</strong> Поиск по названию + автор</p>
+            <ul>
+                <li>Фильтр: только печатные книги (исключить электронные)</li>
+                <li>Фильтр: только с одинаковой обложкой</li>
+            </ul>
+            <p><strong>Приоритет 2:</strong> Если точного совпадения нет → поиск по ISBN</p>
+            <p><strong>Приоритет 3:</strong> Если на Ozon нет → поиск на других площадках (Яндекс.Маркет, WB, букинистические сайты)</p>
+
+            <h3>ШАГ 3: АНАЛИЗ КОНКУРЕНТОВ</h3>
+            <p>Собрать все цены на книги с одинаковой обложкой:</p>
+            <div class="calc-formula">
+                Пример:<br>
+                - Книга А: 600₽ (в наличии)<br>
+                - Книга Б: 800₽ (в наличии)<br>
+                - Книга В: 1700₽ (в наличии)<br>
+                - Книга Г: 186₽ (электронная) → ИСКЛЮЧИТЬ<br>
+                - Книга Д: 1929₽ (уцененная) → ИСКЛЮЧИТЬ
+            </div>
+            <p>Рассчитать:</p>
+            <ul>
+                <li>Среднюю цену</li>
+                <li>Диапазон (мин-макс)</li>
+                <li>Количество предложений</li>
+            </ul>
+
+            <h3>ШАГ 4: ОПРЕДЕЛЕНИЕ БАЗОВОЙ ЦЕНЫ</h3>
+            <div class="calc-formula">
+                Базовая цена = Средняя цена конкурентов с одинаковой обложкой<br><br>
+                Если средняя цена &lt; 1100₽ → Базовая цена = 1100₽ (минимальный ценник)
+            </div>
+
+            <h3>ШАГ 5: КОРРЕКТИРОВКА ЦЕНЫ</h3>
+            <p>Применить корректировки к базовой цене:</p>
+            
+            <h4>ПОВЫШАЮЩИЕ КОЭФФИЦИЕНТЫ:</h4>
+            <table>
+                <tr><th>Фактор</th><th>Корректировка</th></tr>
+                <tr><td>Нет в наличии у конкурентов</td><td>+20-30%</td></tr>
+                <tr><td>Нет конкуренции на Ozon (наша книга единственная)</td><td>+30-50%</td></tr>
+                <tr><td>Твердая обложка (у конкурентов мягкая)</td><td>+10-20%</td></tr>
+                <tr><td>Редкое/антикварное издание</td><td>+20-50%</td></tr>
+                <tr><td>Идеальное состояние (букинистика как новая)</td><td>+10-20%</td></tr>
+                <tr><td>Цена на других сайтах выше</td><td>+10-20%</td></tr>
+            </table>
+
+            <h4>ПОНИЖАЮЩИЕ КОЭФФИЦИЕНТЫ:</h4>
+            <table>
+                <tr><th>Фактор</th><th>Корректировка</th></tr>
+                <tr><td>Книга бу (не новая)</td><td>-10-20%</td></tr>
+                <tr><td>Есть дефекты (подчеркивания, пятна)</td><td>-10-30%</td></tr>
+                <tr><td>Много дешевых аналогов на рынке</td><td>Использовать минимальный ценник 1100₽</td></tr>
+                <tr><td>Мягкая обложка (у конкурентов твердая)</td><td>-10-20%</td></tr>
+                <tr><td>Популярная книга, много предложений</td><td>-10-20% от средней</td></tr>
+            </table>
+
+            <h3>ШАГ 6: ПРИМЕНЕНИЕ МИНИМАЛЬНОГО ЦЕННИКА</h3>
+            <div class="calc-formula">
+                Если расчетная цена &lt; 1100₽:<br>
+                Ценник = 1100₽<br>
+                Цена продажи = 1100 - 45% = 605₽
+            </div>
+
+            <h3>ШАГ 7: ФИНАЛЬНАЯ ПРОВЕРКА</h3>
+            <p><strong>Правила:</strong></p>
+            <ol>
+                <li>Цена продажи не должна превышать самую дорогую книгу с такой же обложкой на рынке (если нет уникальных преимуществ)</li>
+                <li>Цена должна быть конкурентной (не дороже средней по рынку более чем на 20%)</li>
+                <li>Если книга бу → цена должна быть ниже новой</li>
+            </ol>
+        </div>
+
+        <!-- ПРИМЕРЫ РАСЧЕТОВ -->
+        <div class="section">
+            <h2>📊 ПРИМЕРЫ РАСЧЕТОВ</h2>
+
+            <div class="example-box">
+                <h4>Пример 1: "Иванович: Торговец эпохами. Противостояние"</h4>
+                <div class="photo-grid">
+                    <div class="photo-item">
+                        <img src="1.jpg" alt="Торговец эпохами 1">
+                        <p>1.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="2_1.jpg" alt="Торговец эпохами 2">
+                        <p>2_1.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="2_5.jpg" alt="Торговец эпохами 3">
+                        <p>2_5.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="5.jpg" alt="Торговец эпохами 4">
+                        <p>5.jpg</p>
+                    </div>
+                </div>
+                <p><strong>Анализ рынка:</strong></p>
+                <ul>
+                    <li>✅ Ozon — достаточно предложений для оценки</li>
+                    <li>❌ Другие ресурсы — не смотрятся</li>
+                    <li>📈 Диапазон цен: 600-1700₽ (большинство 600-800₽)</li>
+                    <li>❌ Электронные версии — не учитываются</li>
+                </ul>
+                <p><strong>Расчет цены:</strong></p>
+                <ul>
+                    <li>Базовая цена: <strong>1600₽</strong> (770₽ со скидкой 45%)</li>
+                    <li>⚠️ <strong>Дефект:</strong> пятно на несколько страниц</li>
+                    <li>Итоговая цена: <strong>1400₽</strong> (770₽ со скидкой 45%)</li>
+                </ul>
+                <p><strong>Логика:</strong> Немного дешевле рынка, но не самая дешевая</p>
+            </div>
+
+            <div class="example-box">
+                <h4>Пример 2: "Доценко: Срок для бешеного" (2017)</h4>
+                <div class="photo-grid">
+                    <div class="photo-item">
+                        <img src="3.jpg" alt="Срок для бешеного">
+                        <p>3.jpg</p>
+                    </div>
+                </div>
+                <p><strong>Анализ рынка:</strong></p>
+                <ol>
+                    <li>🔍 Ozon — много книг, но <strong>не наше издание</strong> → не учитываются</li>
+                    <li>🔍 Яндекс (по ISBN): 400-600₽, но <strong>нет в наличии</strong> + на 5-10 других сайтах тоже нет</li>
+                    <li>✅ Возврат на Ozon: 400-700₽ (разные издания)</li>
+                </ol>
+                <p><strong>Расчет цены:</strong></p>
+                <ul>
+                    <li><strong>Итоговая цена: 1300₽</strong> (700₽ со скидкой 46%)</li>
+                </ul>
+                <p><strong>Логика:</strong></p>
+                <ul>
+                    <li>✅ Новое издание</li>
+                    <li>✅ Идеальное состояние</li>
+                    <li>✅ Выделяется среди конкурентов</li>
+                    <li>→ Может занимать <strong>верхний порог</strong> цены по рынку</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h4>Пример 3: "Саган избранные произведения в 4 томах"</h4>
+                <div class="photo-grid">
+                    <div class="photo-item">
+                        <img src="4_1.jpg" alt="Саган 1">
+                        <p>4_1.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="4_2.jpg" alt="Саган 2">
+                        <p>4_2.jpg</p>
+                    </div>
+                </div>
+                <p><strong>Анализ рынка:</strong></p>
+                <ul>
+                    <li>Сборник: 2000-4000₽, в среднем ~3500₽</li>
+                    <li>Одна книга из сборника: ~1000₽</li>
+                </ul>
+                <p><strong>Расчет цены:</strong></p>
+                <ul>
+                    <li><strong>Ценник: 6500₽</strong> (3500₽ после скидки)</li>
+                </ul>
+                <p><strong>Логика:</strong> Ценник за сборник адекватный</p>
+            </div>
+
+            <div class="example-box">
+                <h4>Пример 4: "Фредриксон: Анна, Ханна и Юханна"</h4>
+                <div class="photo-grid">
+                    <div class="photo-item">
+                        <img src="4_3.jpg" alt="Анна, Ханна и Юханна">
+                        <p>4_3.jpg</p>
+                    </div>
+                </div>
+                <p><strong>Анализ рынка:</strong></p>
+                <ul>
+                    <li>Нашей книги нет, иду в поисковик</li>
+                    <li>По названию на сайтах физической книги нет в наличии, только электронный вариант</li>
+                    <li>По ISBN только одна ссылка на Ozon</li>
+                    <li>Имеем 450-600 рублей, а та, что есть в наличии на Ozon, другого издания и на других сайтах тоже не была представлена в физическом варианте</li>
+                    <li>Адекватность цены не могу подтвердить, поэтому опираюсь на те две, что нашла.</li>
+                    <li>Конкуренции у нас нет, книга в хорошем состоянии в мягкой обложке</li>
+                </ul>
+                <p><strong>Расчет цены:</strong></p>
+                <ul>
+                    <li>Дам ценник немного повыше имеющихся, <strong>1400₽</strong> (770₽)</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h4>Пример 5: "Егидес: Лабиринты общения, или Как ладить с людьми" (2002)</h4>
+                <div class="photo-grid">
+                    <div class="photo-item">
+                        <img src="5_1.jpg" alt="Лабиринты общения 1">
+                        <p>5_1.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="5_2.jpg" alt="Лабиринты общения 2">
+                        <p>5_2.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="5_3.jpg" alt="Лабиринты общения 3">
+                        <p>5_3.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="5_4.jpg" alt="Лабиринты общения 4">
+                        <p>5_4.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="5_5.jpg" alt="Лабиринты общения 5">
+                        <p>5_5.jpg</p>
+                    </div>
+                </div>
+                <p><strong>Анализ рынка:</strong></p>
+                <ul>
+                    <li>❌ Ozon — наша книга не представлена</li>
+                    <li>✅ WB — 700₽</li>
+                    <li>✅ Сайт URSS — 1000₽</li>
+                    <li>❌ Ozon за 127₽ — издание 2008 года, не учитывается</li>
+                    <li>📊 Другое издание (2008) — в среднем 1500₽</li>
+                </ul>
+                <p><strong>Расчет цены:</strong></p>
+                <ul>
+                    <li>Мало данных о нашей книге (только 700₽ и 1000₽)</li>
+                    <li>Нет конкуренции на Ozon</li>
+                    <li>Другое издание стоит в среднем 1500₽</li>
+                    <li><strong>Итоговая цена: 2000₽</strong> (1100₽ после скидки)</li>
+                </ul>
+                <p><strong>Логика:</strong> Повышаю цену, так как нет конкуренции на Ozon и другое издание стоит в среднем 1500₽ — наша книга будет выгодно смотреться на фоне остальных.</p>
+            </div>
+
+            <div class="example-box">
+                <h4>Пример 6: "One Direction: Кто мы такие. Наша автобиография"</h4>
+                <div class="photo-grid">
+                    <div class="photo-item">
+                        <img src="6.jpg" alt="One Direction">
+                        <p>6.jpg</p>
+                    </div>
+                </div>
+                <p><strong>Анализ рынка:</strong></p>
+                <ul>
+                    <li>На Ozon 3 книги, одна уцененная (1929₽) → не учитываем</li>
+                    <li>Смотрим на 2500₽ и 3000₽ (наши книги в хорошем состоянии, без дефектов)</li>
+                    <li>Средняя: 2700₽</li>
+                    <li>На других сайтах нет в наличии или другое оформление</li>
+                </ul>
+                <p><strong>Расчет цены:</strong></p>
+                <ul>
+                    <li><strong>Ценник: 5000₽</strong> (2700₽ после скидки)</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h4>Пример 7: "Ааду Хинт: Избранное" (1989)</h4>
+                <div class="photo-grid">
+                    <div class="photo-item">
+                        <img src="7_1.jpg" alt="Ааду Хинт 1">
+                        <p>7_1.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="7_2.jpg" alt="Ааду Хинт 2">
+                        <p>7_2.jpg</p>
+                    </div>
+                </div>
+                <p><strong>Анализ рынка:</strong></p>
+                <ul>
+                    <li>На Ozon от 180 до 1000₽</li>
+                    <li>Соотношение дешевых к дорогим — в сторону дешевых, но выше 500 тоже достаточно</li>
+                </ul>
+                <p><strong>Расчет цены:</strong></p>
+                <ul>
+                    <li><strong>Ценник: 1100₽</strong> (600₽ после скидки)</li>
+                    <li>С акцией Ozon будет 400-500₽, что укладывается в среднюю цену рынка</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h4>Пример 8: "Циолковский: Путь к звездам" (1960)</h4>
+                <div class="photo-grid">
+                    <div class="photo-item">
+                        <img src="8_1.jpg" alt="Циолковский 1">
+                        <p>8_1.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="8_2.jpg" alt="Циолковский 2">
+                        <p>8_2.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="8_3.jpg" alt="Циолковский 3">
+                        <p>8_3.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="8_4.jpg" alt="Циолковский 4">
+                        <p>8_4.jpg</p>
+                    </div>
+                </div>
+                <p><strong>Анализ рынка:</strong></p>
+                <ul>
+                    <li>✅ Ozon — наша книга (1960) только одна за 3400₽</li>
+                    <li>📚 Другие издания на Ozon: 600-2400₽ (недостаточно данных)</li>
+                    <li>📚 Бу-сайты: 360-1500₽ (цены произвольные, но приходится учитывать)</li>
+                    <li>✅ URSS: 999₽ (букинист, состояние 4+)</li>
+                </ul>
+                <p><strong>Особенности:</strong></p>
+                <ul>
+                    <li>📖 Антикварная книга 1960 года</li>
+                    <li>⚠️ Дефекты: подчеркивания цветными карандашами</li>
+                    <li>→ Должна стоить меньше</li>
+                </ul>
+                <p><strong>Расчет цены:</strong></p>
+                <ul>
+                    <li>Мало данных по нашей книге, бу-сайты дают ориентир 360-1500₽</li>
+                    <li>Но книга антикварная с дефектами — нужно найти баланс</li>
+                    <li><strong>Итог: ~2000-2800₽</strong> (но так как дефект, поэтому 1500₽)</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h4>Пример 9: "Смерть в пионерском галстуке" (2025)</h4>
+                <div class="photo-grid">
+                    <div class="photo-item">
+                        <img src="9_1.jpg" alt="Смерть в пионерском галстуке 1">
+                        <p>9_1.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="9_2.jpg" alt="Смерть в пионерском галстуке 2">
+                        <p>9_2.jpg</p>
+                    </div>
+                </div>
+                <p><strong>Анализ рынка:</strong></p>
+                <ul>
+                    <li>Книга современная, вариантов на Ozon предоставлено огромное количество</li>
+                    <li>Большинство из них не букинистика</li>
+                    <li>В большинстве случаев книга стоит до 1000 рублей в районе 850</li>
+                    <li>Но есть и дорогие варианты, которые ничем не отличаются</li>
+                </ul>
+                <p><strong>Расчет цены:</strong></p>
+                <ul>
+                    <li>Здесь учитываем, что наша книга бу + есть подпись от предыдущего владельца книги</li>
+                    <li>Поэтому цену я ставлю чуть меньше среднего, <strong>1400₽</strong> (770₽)</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h4>Пример 10: "Венедикт Ерофеев: Собрание сочинений том 1"</h4>
+                <div class="photo-grid">
+                    <div class="photo-item">
+                        <img src="10_1.jpg" alt="Ерофеев 1">
+                        <p>10_1.jpg</p>
+                    </div>
+                    <div class="photo-item">
+                        <img src="10_2.jpg" alt="Ерофеев 2">
+                        <p>10_2.jpg</p>
+                    </div>
+                </div>
+                <p><strong>Анализ рынка:</strong></p>
+                <ul>
+                    <li>Книга от 2600 до 3400 на сайтах, на Ozon 2700₽</li>
+                    <li>Полный сборник есть за 7000₽, то есть 3500₽ за книжку</li>
+                    <li>Есть за 2500₽ сборник, но это мешок - авито для книг, поэтому не учитываем, потому что других вариантов достаточно</li>
+                    <li>По большей части 1 том стоит меньше трех тысяч, поэтому цена книги на Ozon адекватная и может ориентироваться на нее</li>
+                </ul>
+                <p><strong>Расчет цены:</strong></p>
+                <ul>
+                    <li>Поставив чуть выше, потому что на сайтах есть варианты дороже</li>
+                    <li><strong>Ставлю 5300₽</strong> (2900₽ после скидки)</li>
+                    <li>Это чуть дороже конкурента, но не дороже средней по рынку</li>
+                </ul>
+            </div>
+        </div>
+        <!-- ПСЕВДОКОД ДЛЯ ПРОГРАММИСТА -->
+        <div class="section">
+            <h2>💻 Псевдокод для программиста</h2>
+            
+            <div class="code-block">
+<pre><span class="keyword">def</span> <span class="function">calculate_book_price</span>(book_data):
+    <span class="comment"># ШАГ 1: Идентификация</span>
+    title = book_data[<span class="string">'title'</span>]
+    author = book_data[<span class="string">'author'</span>]
+    isbn = book_data[<span class="string">'isbn'</span>]
+    year = book_data[<span class="string">'year'</span>]
+    cover_type = book_data[<span class="string">'cover_type'</span>]  <span class="comment"># 'hard' или 'soft'</span>
+    condition = book_data[<span class="string">'condition'</span>]  <span class="comment"># 'perfect', 'good', 'defects'</span>
+    defects = book_data.get(<span class="string">'defects'</span>, [])
+    
+    <span class="comment"># ШАГ 2: Поиск аналогов на Ozon</span>
+    competitors = search_ozon(title, author, isbn)
+    
+    <span class="comment"># Фильтрация</span>
+    competitors = [c <span class="keyword">for</span> c <span class="keyword">in</span> competitors <span class="keyword">if</span> c[<span class="string">'type'</span>] == <span class="string">'print'</span>]  <span class="comment"># Только печатные</span>
+    competitors = [c <span class="keyword">for</span> c <span class="keyword">in</span> competitors <span class="keyword">if</span> c[<span class="string">'cover'</span>] == book_data[<span class="string">'cover'</span>]]  <span class="comment"># Одинаковая обложка</span>
+    competitors = [c <span class="keyword">for</span> c <span class="keyword">in</span> competitors <span class="keyword">if</span> <span class="keyword">not</span> c[<span class="string">'discounted'</span>]]  <span class="comment"># Исключить уцененные</span>
+    
+    <span class="comment"># ШАГ 3: Анализ конкурентов</span>
+    <span class="keyword">if</span> len(competitors) == 0:
+        <span class="comment"># Нет конкурентов на Ozon</span>
+        base_price = 1100  <span class="comment"># Минимальный ценник</span>
+        no_competition = True
+    <span class="keyword">else</span>:
+        prices = [c[<span class="string">'price'</span>] <span class="keyword">for</span> c <span class="keyword">in</span> competitors]
+        base_price = sum(prices) / len(prices)
+        no_competition = False
+    
+    <span class="comment"># ШАГ 4: Минимальный ценник</span>
+    <span class="keyword">if</span> base_price &lt; 1100:
+        base_price = 1100
+    
+    <span class="comment"># ШАГ 5: Корректировки</span>
+    adjustment = 0
+    
+    <span class="comment"># Повышающие</span>
+    <span class="keyword">if</span> no_competition:
+        adjustment += 0.40  <span class="comment"># +40%</span>
+    
+    <span class="keyword">if</span> all(c[<span class="string">'available'</span>] == False <span class="keyword">for</span> c <span class="keyword">in</span> competitors):
+        adjustment += 0.25  <span class="comment"># +25% (нет в наличии)</span>
+    
+    <span class="keyword">if</span> cover_type == <span class="string">'hard'</span> <span class="keyword">and</span> any(c[<span class="string">'cover_type'</span>] == <span class="string">'soft'</span> <span class="keyword">for</span> c <span class="keyword">in</span> competitors):
+        adjustment += 0.15  <span class="comment"># +15% (твердая vs мягкая)</span>
+    
+    <span class="keyword">if</span> year &lt; 1990:  <span class="comment"># Антикварная</span>
+        adjustment += 0.30  <span class="comment"># +30%</span>
+    
+    <span class="keyword">if</span> condition == <span class="string">'perfect'</span>:
+        adjustment += 0.15  <span class="comment"># +15%</span>
+    
+    <span class="comment"># Понижающие</span>
+    <span class="keyword">if</span> condition == <span class="string">'used'</span>:  <span class="comment"># Бу</span>
+        adjustment -= 0.15  <span class="comment"># -15%</span>
+    
+    <span class="keyword">if</span> len(defects) &gt; 0:
+        adjustment -= 0.20 * len(defects)  <span class="comment"># -20% за каждый дефект</span>
+    
+    <span class="keyword">if</span> len(competitors) &gt; 10 <span class="keyword">and</span> base_price &lt; 1000:
+        <span class="comment"># Много дешевых аналогов</span>
+        final_price = 1100  <span class="comment"># Минимальный ценник</span>
+    <span class="keyword">else</span>:
+        final_price = base_price * (1 + adjustment)
+    
+    <span class="comment"># ШАГ 6: Финальная проверка</span>
+    <span class="keyword">if</span> final_price &lt; 1100:
+        final_price = 1100
+    
+    <span class="comment"># Не превышать самую дорогую книгу с такой же обложкой более чем на 20%</span>
+    <span class="keyword">if</span> competitors:
+        max_competitor_price = max(c[<span class="string">'price'</span>] <span class="keyword">for</span> c <span class="keyword">in</span> competitors)
+        <span class="keyword">if</span> final_price &gt; max_competitor_price * 1.20:
+            final_price = max_competitor_price * 1.20
+    
+    <span class="comment"># ШАГ 7: Расчет цены продажи</span>
+    sale_price = final_price * 0.55  <span class="comment"># -45%</span>
+    
+    <span class="keyword">return</span> {
+        <span class="string">'listing_price'</span>: round(final_price, -10),  <span class="comment"># Округлить до 10</span>
+        <span class="string">'sale_price'</span>: round(sale_price, -10),
+        <span class="string">'discount'</span>: <span class="string">'45%'</span>,
+        <span class="string">'reasoning'</span>: generate_reasoning(adjustment, competitors)
+    }</pre>
+            </div>
+        </div>
+
+        <!-- ИНСТРУКЦИЯ ДЛЯ СОТРУДНИКОВ -->
+        <div class="section">
+            <h2>📝 Инструкция для сотрудников</h2>
+            
+            <h3>При оценке книги:</h3>
+            <ol>
+                <li><strong>Найди книгу на Ozon</strong> по названию + автор</li>
+                <li><strong>Отфильтруй</strong> только печатные книги с одинаковой обложкой</li>
+                <li><strong>Посмотри цены</strong> конкурентов (исключи электронные и уцененные)</li>
+                <li><strong>Рассчитай среднюю цену</strong></li>
+                <li><strong>Примени корректировки:</strong>
+                    <ul>
+                        <li>Нет конкуренции? → +30-40%</li>
+                        <li>Есть дефекты? → -20%</li>
+                        <li>Книга бу? → -15%</li>
+                        <li>Твердая обложка? → +15%</li>
+                    </ul>
+                </li>
+                <li><strong>Проверь минимальный ценник:</strong> если &lt; 1100₽ → ставь 1100₽</li>
+                <li><strong>Рассчитай цену продажи:</strong> Ценник - 45%</li>
+            </ol>
+            
+            <div class="example-card">
+                <h4>Пример расчета:</h4>
+                <ul>
+                    <li>Средняя цена конкурентов: 800₽</li>
+                    <li>Нет конкуренции: +40% → 1120₽</li>
+                    <li>Минимальный ценник: 1100₽ → берем 1400₽ (чуть выше)</li>
+                    <li>Цена продажи: 1400 - 45% = 770₽</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer>
+            <p><strong>Алгоритм оценки книг — Книголюб | 2026</strong></p>
+            <p>Разработано для автоматизации процесса ценообразования</p>
+        </footer>
+    </div>
+</body>
+</html>
